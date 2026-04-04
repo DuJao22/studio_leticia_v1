@@ -20,17 +20,29 @@ router.get('/settings', async (req, res) => {
 
 // Admin: Update settings
 router.put('/admin/settings', async (req, res) => {
-  const { cover_photo, profile_photo } = req.body;
+  const { cover_photo, profile_photo, subtitle, instagram_url, tiktok_url } = req.body;
   try {
     const db = getDb();
-    if (cover_photo) {
-      await db.sql('UPDATE settings SET value = ? WHERE setting_key = ?', cover_photo, 'cover_photo');
-    }
-    if (profile_photo) {
-      await db.sql('UPDATE settings SET value = ? WHERE setting_key = ?', profile_photo, 'profile_photo');
-    }
+    
+    // Helper function to insert or update setting
+    const upsertSetting = async (key: string, value: string) => {
+      const existing = await db.sql`SELECT * FROM settings WHERE setting_key = ${key}`;
+      if (existing && existing.length > 0) {
+        await db.sql`UPDATE settings SET value = ${value} WHERE setting_key = ${key}`;
+      } else {
+        await db.sql`INSERT INTO settings (setting_key, value) VALUES (${key}, ${value})`;
+      }
+    };
+
+    if (cover_photo !== undefined) await upsertSetting('cover_photo', cover_photo);
+    if (profile_photo !== undefined) await upsertSetting('profile_photo', profile_photo);
+    if (subtitle !== undefined) await upsertSetting('subtitle', subtitle);
+    if (instagram_url !== undefined) await upsertSetting('instagram_url', instagram_url);
+    if (tiktok_url !== undefined) await upsertSetting('tiktok_url', tiktok_url);
+
     res.json({ success: true });
   } catch (error) {
+    console.error('Error updating settings:', error);
     res.status(500).json({ error: 'Erro ao atualizar configurações' });
   }
 });

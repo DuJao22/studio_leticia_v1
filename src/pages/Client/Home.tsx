@@ -19,7 +19,10 @@ export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
   const [settings, setSettings] = useState({ 
     cover_photo: 'https://images.unsplash.com/photo-1587775537446-271510255146?w=1600&q=80', 
-    profile_photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80' 
+    profile_photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80',
+    subtitle: 'Transformando unhas em obras de arte🖌️🎨',
+    instagram_url: '',
+    tiktok_url: ''
   });
   const [showSplash, setShowSplash] = useState(true);
   const navigate = useNavigate();
@@ -32,10 +35,13 @@ export default function Home() {
     fetch('/api/settings')
       .then(res => res.json())
       .then(data => {
-        if (data.cover_photo || data.profile_photo) {
+        if (!data.error) {
           setSettings(prev => ({
             cover_photo: data.cover_photo || prev.cover_photo,
-            profile_photo: data.profile_photo || prev.profile_photo
+            profile_photo: data.profile_photo || prev.profile_photo,
+            subtitle: data.subtitle || prev.subtitle,
+            instagram_url: data.instagram_url || prev.instagram_url,
+            tiktok_url: data.tiktok_url || prev.tiktok_url
           }));
         }
       });
@@ -108,20 +114,21 @@ export default function Home() {
                 Letícia Studio
               </h1>
               <p className="text-xs md:text-sm font-semibold tracking-widest text-primary mb-6 uppercase">
-                Transformando olhares em forma de cílios
+                {settings.subtitle}
               </p>
               
               {/* Social Icons */}
               <div className="flex justify-center gap-6 text-accent mb-10">
-                 <a href="#" className="hover:text-primary transition-colors transform hover:scale-110">
-                   <Instagram className="w-6 h-6" />
-                 </a>
-                 <a href="#" className="hover:text-primary transition-colors transform hover:scale-110">
-                   <MessageCircle className="w-6 h-6" />
-                 </a>
-                 <a href="#" className="hover:text-primary transition-colors transform hover:scale-110">
-                   <Music2 className="w-6 h-6" />
-                 </a>
+                 {settings.instagram_url && (
+                   <a href={settings.instagram_url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors transform hover:scale-110">
+                     <Instagram className="w-6 h-6" />
+                   </a>
+                 )}
+                 {settings.tiktok_url && (
+                   <a href={settings.tiktok_url} target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors transform hover:scale-110">
+                     <Music2 className="w-6 h-6" />
+                   </a>
+                 )}
               </div>
 
               {/* Action Buttons */}

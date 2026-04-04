@@ -32,7 +32,13 @@ export default function AdminDashboard() {
   const [services, setServices] = useState<Service[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [crmClients, setCrmClients] = useState<any[]>([]);
-  const [settings, setSettings] = useState({ cover_photo: '', profile_photo: '' });
+  const [settings, setSettings] = useState({ 
+    cover_photo: '', 
+    profile_photo: '',
+    subtitle: 'Transformando unhas em obras de arte🖌️🎨',
+    instagram_url: '',
+    tiktok_url: ''
+  });
   const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
   const [filter, setFilter] = useState<'all' | 'today'>('today');
   const [lastAppointmentId, setLastAppointmentId] = useState<number | null>(null);
@@ -99,7 +105,10 @@ export default function AdminDashboard() {
         if (!data.error) {
           setSettings({
             cover_photo: data.cover_photo || '',
-            profile_photo: data.profile_photo || ''
+            profile_photo: data.profile_photo || '',
+            subtitle: data.subtitle || 'Transformando unhas em obras de arte🖌️🎨',
+            instagram_url: data.instagram_url || '',
+            tiktok_url: data.tiktok_url || ''
           });
         }
       })
@@ -677,6 +686,36 @@ export default function AdminDashboard() {
                       <img src={settings.profile_photo} alt="Perfil" className="w-full h-full object-cover" />
                     </div>
                   )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Frase de Efeito (Subtítulo)</label>
+                  <input 
+                    type="text" 
+                    value={settings.subtitle} 
+                    onChange={e => setSettings({...settings, subtitle: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Ex: Transformando unhas em obras de arte🖌️🎨"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Link do Instagram</label>
+                  <input 
+                    type="url" 
+                    value={settings.instagram_url} 
+                    onChange={e => setSettings({...settings, instagram_url: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="https://instagram.com/seu.perfil"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Link do TikTok</label>
+                  <input 
+                    type="url" 
+                    value={settings.tiktok_url} 
+                    onChange={e => setSettings({...settings, tiktok_url: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="https://tiktok.com/@seu.perfil"
+                  />
                 </div>
                 <div className="pt-4">
                   <button type="submit" className="px-8 py-3 rounded-xl font-medium bg-accent text-white hover:bg-accent/90 transition-colors">
