@@ -3,6 +3,38 @@ import { getDb } from '../db/database';
 
 const router = Router();
 
+// Get settings
+router.get('/settings', async (req, res) => {
+  try {
+    const db = getDb();
+    const settings = await db.sql('SELECT * FROM settings');
+    const settingsMap = settings.reduce((acc: any, curr: any) => {
+      acc[curr.setting_key] = curr.value;
+      return acc;
+    }, {});
+    res.json(settingsMap);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar configurações' });
+  }
+});
+
+// Admin: Update settings
+router.put('/admin/settings', async (req, res) => {
+  const { cover_photo, profile_photo } = req.body;
+  try {
+    const db = getDb();
+    if (cover_photo) {
+      await db.sql('UPDATE settings SET value = ? WHERE setting_key = ?', cover_photo, 'cover_photo');
+    }
+    if (profile_photo) {
+      await db.sql('UPDATE settings SET value = ? WHERE setting_key = ?', profile_photo, 'profile_photo');
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao atualizar configurações' });
+  }
+});
+
 // Get all services
 router.get('/services', async (req, res) => {
   try {
@@ -112,7 +144,7 @@ router.patch('/admin/appointments/:id/status', async (req, res) => {
 // Admin: Login
 router.post('/admin/login', (req, res) => {
   const { username, password } = req.body;
-  if (username?.trim() === 'Leticiaadm' && password?.trim() === '30031936') {
+  if (username?.trim().toLowerCase() === 'leticiaadm' && password?.trim() === '30031936') {
     res.json({ token: 'fake-jwt-token', success: true });
   } else {
     res.status(401).json({ error: 'Credenciais inválidas' });

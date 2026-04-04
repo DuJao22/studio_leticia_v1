@@ -27,11 +27,13 @@ interface Service {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'appointments' | 'services'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'appointments' | 'services' | 'settings'>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [crmClients, setCrmClients] = useState<any[]>([]);
+  const [settings, setSettings] = useState({ cover_photo: '', profile_photo: '' });
+  const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
   const [filter, setFilter] = useState<'all' | 'today'>('today');
   const [lastAppointmentId, setLastAppointmentId] = useState<number | null>(null);
   const lastIdRef = React.useRef<number | null>(null);
@@ -48,19 +50,60 @@ export default function AdminDashboard() {
     fetch('/api/admin/appointments')
       .then(res => res.json())
       .then(data => {
-        if (data.length > 0) {
-          const newest = data[0];
-          if (!isInitial && lastIdRef.current !== null && newest.id > lastIdRef.current) {
-            showNotification(newest);
+        if (Array.isArray(data)) {
+          if (data.length > 0) {
+            const newest = data[0];
+            if (!isInitial && lastIdRef.current !== null && newest.id > lastIdRef.current) {
+              showNotification(newest);
+            }
+            lastIdRef.current = newest.id;
+            setLastAppointmentId(newest.id);
           }
-          lastIdRef.current = newest.id;
-          setLastAppointmentId(newest.id);
+          setAppointments(data);
+        } else {
+          console.error('Failed to fetch appointments:', data);
+          setAppointments([]);
         }
-        setAppointments(data);
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        setAppointments([]);
       });
-    fetch('/api/services').then(res => res.json()).then(setServices);
-    fetch('/api/admin/stats').then(res => res.json()).then(setStats);
-    fetch('/api/admin/crm/clients').then(res => res.json()).then(setCrmClients);
+
+    fetch('/api/services')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setServices(data);
+        else setServices([]);
+      })
+      .catch(() => setServices([]));
+
+    fetch('/api/admin/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) setStats(data);
+      })
+      .catch(() => {});
+
+    fetch('/api/admin/crm/clients')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setCrmClients(data);
+        else setCrmClients([]);
+      })
+      .catch(() => setCrmClients([]));
+
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setSettings({
+            cover_photo: data.cover_photo || '',
+            profile_photo: data.profile_photo || ''
+          });
+        }
+      })
+      .catch(() => {});
   };
 
   const showNotification = (appointment: Appointment) => {
@@ -228,6 +271,15 @@ export default function AdminDashboard() {
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
             )}
           </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`pb-4 px-2 font-medium transition-colors relative whitespace-nowrap ${activeTab === 'settings' ? 'text-accent' : 'text-text-light hover:text-text-main'}`}
+          >
+            Configurações
+            {activeTab === 'settings' && (
+              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
+            )}
+          </button>
         </div>
 
         {activeTab === 'overview' && stats && (
@@ -291,7 +343,7 @@ export default function AdminDashboard() {
                         labelFormatter={(label) => format(parseISO(label), "dd 'de' MMMM", { locale: ptBR })}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
-                      <Line type="monotone" dataKey="revenue" stroke="#d946ef" strokeWidth={3} dot={{ r: 4, fill: '#d946ef' }} activeDot={{ r: 6 }} />
+                      <Line type="monotone" dataKey="revenue" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--color-primary)' }} activeDot={{ r: 6 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -311,9 +363,9 @@ export default function AdminDashboard() {
                         formatter={(value: number) => [value, 'Agendamentos']}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       />
-                      <Bar dataKey="count" fill="#a21caf" radius={[0, 4, 4, 0]} barSize={30}>
+                      <Bar dataKey="count" fill="var(--color-accent)" radius={[0, 4, 4, 0]} barSize={30}>
                         {stats.appointmentsByService.map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#d946ef' : '#a21caf'} />
+                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--color-primary)' : 'var(--color-accent)'} />
                         ))}
                       </Bar>
                     </BarChart>
@@ -562,6 +614,76 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          </motion.div>
+        )}
+        {activeTab === 'settings' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl">
+            <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
+              <h2 className="text-xl font-display mb-6">Configurações da Página Inicial</h2>
+              
+              {saveMessage.text && (
+                <div className={`mb-6 p-4 rounded-xl text-sm flex items-center ${saveMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {saveMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <AlertCircle className="w-5 h-5 mr-2" />}
+                  {saveMessage.text}
+                </div>
+              )}
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setSaveMessage({ type: '', text: '' });
+                try {
+                  const res = await fetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                  });
+                  if (res.ok) {
+                    setSaveMessage({ type: 'success', text: 'Configurações salvas com sucesso!' });
+                    setTimeout(() => setSaveMessage({ type: '', text: '' }), 3000);
+                  } else {
+                    setSaveMessage({ type: 'error', text: 'Erro ao salvar configurações' });
+                  }
+                } catch (error) {
+                  setSaveMessage({ type: 'error', text: 'Erro ao salvar configurações' });
+                }
+              }} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">URL da Foto de Capa (Fundo)</label>
+                  <input 
+                    type="url" 
+                    value={settings.cover_photo} 
+                    onChange={e => setSettings({...settings, cover_photo: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="https://..."
+                  />
+                  {settings.cover_photo && (
+                    <div className="mt-2 h-32 rounded-xl overflow-hidden border border-secondary">
+                      <img src={settings.cover_photo} alt="Capa" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">URL da Foto de Perfil</label>
+                  <input 
+                    type="url" 
+                    value={settings.profile_photo} 
+                    onChange={e => setSettings({...settings, profile_photo: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="https://..."
+                  />
+                  {settings.profile_photo && (
+                    <div className="mt-2 w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm">
+                      <img src={settings.profile_photo} alt="Perfil" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <div className="pt-4">
+                  <button type="submit" className="px-8 py-3 rounded-xl font-medium bg-accent text-white hover:bg-accent/90 transition-colors">
+                    Salvar Configurações
+                  </button>
+                </div>
+              </form>
             </div>
           </motion.div>
         )}

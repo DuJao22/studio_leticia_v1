@@ -100,7 +100,7 @@ export default function AdminLogin() {
           <button 
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center py-4 bg-primary text-text-main font-medium rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center py-4 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 active:scale-95 transition-all shadow-lg shadow-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Entrando...' : 'Entrar no Painel'} <ArrowRight className="w-5 h-5 ml-2" />
           </button>

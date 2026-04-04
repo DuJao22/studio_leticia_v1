@@ -55,6 +55,24 @@ export async function initDb() {
       );
     `;
 
+    await database.sql`
+      CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        setting_key TEXT NOT NULL UNIQUE,
+        value TEXT NOT NULL
+      );
+    `;
+
+    // Seed initial settings
+    const settingsCount = await database.sql`SELECT COUNT(*) as count FROM settings`;
+    if (settingsCount[0].count === 0) {
+      await database.sql`
+        INSERT INTO settings (setting_key, value) VALUES 
+        ('cover_photo', 'https://images.unsplash.com/photo-1587775537446-271510255146?w=1600&q=80'),
+        ('profile_photo', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80')
+      `;
+    }
+
     // Seed initial data if empty
     const services = await database.sql`SELECT COUNT(*) as count FROM services`;
     if (services[0].count === 0) {

@@ -42,9 +42,14 @@ export default function App() {
             />
           </Routes>
         </main>
-        <footer className="py-6 text-center text-sm text-text-light bg-surface border-t border-secondary flex flex-col items-center justify-center gap-2">
+        <footer className="relative z-50 pt-8 pb-12 text-center text-sm text-text-light bg-surface border-t border-secondary flex flex-col items-center justify-center gap-3">
           <p>Desenvolvido por João Layon, CEO da DS Company</p>
-          <Link to="/admin" className="text-xs hover:text-accent transition-colors">Acesso Administrativo</Link>
+          <Link 
+            to="/admin" 
+            className="inline-flex items-center justify-center px-6 py-3 bg-secondary/50 text-accent font-medium rounded-xl hover:bg-secondary active:scale-95 transition-all border border-secondary shadow-sm"
+          >
+            Acesso Administrativo
+          </Link>
         </footer>
       </div>
     </Router>
