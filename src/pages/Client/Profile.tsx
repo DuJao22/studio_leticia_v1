@@ -43,7 +43,7 @@ export default function ClientProfile() {
     fetch(`/api/users/${user.id}/appointments`)
       .then(res => res.json())
       .then(setAppointments)
-      .catch(console.error);
+      .catch(err => console.warn('Fetch error:', err.message));
   }, [user, navigate]);
 
   const handleLogout = () => {

@@ -99,8 +99,8 @@ export default function BookingFlow() {
       } else {
         alert('Erro ao realizar agendamento. Tente novamente.');
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.warn('Booking error:', error.message);
       alert('Erro de conexão.');
     } finally {
       setIsSubmitting(false);

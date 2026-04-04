@@ -33,9 +33,15 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [crmClients, setCrmClients] = useState<any[]>([]);
   const [settings, setSettings] = useState({ 
+    profile_name: 'Letícia Studio',
     cover_photo: '', 
     profile_photo: '',
     subtitle: 'Transformando unhas em obras de arte🖌️🎨',
+    services_title: 'Nossos Serviços',
+    services_subtitle: 'Selecione um serviço abaixo para ver os horários disponíveis.',
+    btn_schedule: 'Agendar Horário',
+    btn_account: 'Minha Conta',
+    btn_service_schedule: 'Agendar este serviço',
     instagram_url: '',
     tiktok_url: ''
   });
@@ -67,12 +73,12 @@ export default function AdminDashboard() {
           }
           setAppointments(data);
         } else {
-          console.error('Failed to fetch appointments:', data);
+          console.warn('Failed to fetch appointments:', data);
           setAppointments([]);
         }
       })
       .catch(err => {
-        console.error('Fetch error:', err);
+        console.warn('Fetch error:', err.message);
         setAppointments([]);
       });
 
@@ -99,20 +105,28 @@ export default function AdminDashboard() {
       })
       .catch(() => setCrmClients([]));
 
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error) {
-          setSettings({
-            cover_photo: data.cover_photo || '',
-            profile_photo: data.profile_photo || '',
-            subtitle: data.subtitle || 'Transformando unhas em obras de arte🖌️🎨',
-            instagram_url: data.instagram_url || '',
-            tiktok_url: data.tiktok_url || ''
-          });
-        }
-      })
-      .catch(() => {});
+    if (isInitial) {
+      fetch('/api/settings')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.error) {
+            setSettings({
+              profile_name: data.profile_name || 'Letícia Studio',
+              cover_photo: data.cover_photo || '',
+              profile_photo: data.profile_photo || '',
+              subtitle: data.subtitle || 'Transformando unhas em obras de arte🖌️🎨',
+              services_title: data.services_title || 'Nossos Serviços',
+              services_subtitle: data.services_subtitle || 'Selecione um serviço abaixo para ver os horários disponíveis.',
+              btn_schedule: data.btn_schedule || 'Agendar Horário',
+              btn_account: data.btn_account || 'Minha Conta',
+              btn_service_schedule: data.btn_service_schedule || 'Agendar este serviço',
+              instagram_url: data.instagram_url || '',
+              tiktok_url: data.tiktok_url || ''
+            });
+          }
+        })
+        .catch(() => {});
+    }
   };
 
   const showNotification = (appointment: Appointment) => {
@@ -153,8 +167,8 @@ export default function AdminDashboard() {
         body: JSON.stringify({ status })
       });
       if (res.ok) fetchData();
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.warn('Update error:', error.message);
     }
   };
 
@@ -178,8 +192,8 @@ export default function AdminDashboard() {
         setIsModalOpen(false);
         fetchData();
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.warn('Save error:', error.message);
     }
   };
 
@@ -188,8 +202,8 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`/api/admin/services/${id}`, { method: 'DELETE' });
       if (res.ok) fetchData();
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.warn('Delete error:', error.message);
     }
   };
 
@@ -759,6 +773,16 @@ export default function AdminDashboard() {
                 }
               }} className="space-y-6">
                 <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Nome do Perfil</label>
+                  <input 
+                    type="text" 
+                    value={settings.profile_name} 
+                    onChange={e => setSettings({...settings, profile_name: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Letícia Studio"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-text-light mb-2">URL da Foto de Capa (Fundo)</label>
                   <input 
                     type="url" 
@@ -799,7 +823,57 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-light mb-2">Link do Instagram</label>
+                  <label className="block text-sm font-medium text-text-light mb-2">Título da Seção de Serviços</label>
+                  <input 
+                    type="text" 
+                    value={settings.services_title} 
+                    onChange={e => setSettings({...settings, services_title: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Ex: Nossos Serviços"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Subtítulo da Seção de Serviços</label>
+                  <input 
+                    type="text" 
+                    value={settings.services_subtitle} 
+                    onChange={e => setSettings({...settings, services_subtitle: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Ex: Selecione um serviço abaixo para ver os horários disponíveis."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Texto do Botão "Agendar Horário"</label>
+                  <input 
+                    type="text" 
+                    value={settings.btn_schedule} 
+                    onChange={e => setSettings({...settings, btn_schedule: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Ex: Agendar Horário"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Texto do Botão "Minha Conta"</label>
+                  <input 
+                    type="text" 
+                    value={settings.btn_account} 
+                    onChange={e => setSettings({...settings, btn_account: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Ex: Minha Conta"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Texto do Botão "Agendar este serviço"</label>
+                  <input 
+                    type="text" 
+                    value={settings.btn_service_schedule} 
+                    onChange={e => setSettings({...settings, btn_service_schedule: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl border border-secondary focus:border-accent outline-none" 
+                    placeholder="Ex: Agendar este serviço"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-light mb-2">Link do Instagram (Opcional)</label>
                   <input 
                     type="url" 
                     value={settings.instagram_url} 
@@ -809,7 +883,7 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-light mb-2">Link do TikTok</label>
+                  <label className="block text-sm font-medium text-text-light mb-2">Link do TikTok (Opcional)</label>
                   <input 
                     type="url" 
                     value={settings.tiktok_url} 

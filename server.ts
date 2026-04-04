@@ -12,7 +12,16 @@ async function startServer() {
   app.use(express.json());
 
   // Initialize Database
-  await initDb();
+  try {
+    console.log("Initializing database...");
+    await Promise.race([
+      initDb(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Database initialization timed out")), 5000))
+    ]);
+    console.log("Database initialized.");
+  } catch (err) {
+    console.error("Failed to initialize database:", err);
+  }
 
   // Initialize Cron Jobs
   initCronJobs();

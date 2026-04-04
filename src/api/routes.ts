@@ -20,7 +20,6 @@ router.get('/settings', async (req, res) => {
 
 // Admin: Update settings
 router.put('/admin/settings', async (req, res) => {
-  const { cover_photo, profile_photo, subtitle, instagram_url, tiktok_url } = req.body;
   try {
     const db = getDb();
     
@@ -34,11 +33,11 @@ router.put('/admin/settings', async (req, res) => {
       }
     };
 
-    if (cover_photo !== undefined) await upsertSetting('cover_photo', cover_photo);
-    if (profile_photo !== undefined) await upsertSetting('profile_photo', profile_photo);
-    if (subtitle !== undefined) await upsertSetting('subtitle', subtitle);
-    if (instagram_url !== undefined) await upsertSetting('instagram_url', instagram_url);
-    if (tiktok_url !== undefined) await upsertSetting('tiktok_url', tiktok_url);
+    for (const [key, value] of Object.entries(req.body)) {
+      if (value !== undefined) {
+        await upsertSetting(key, String(value));
+      }
+    }
 
     res.json({ success: true });
   } catch (error) {
