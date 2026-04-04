@@ -40,7 +40,7 @@ export default function AdminDashboard() {
     tiktok_url: ''
   });
   const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
-  const [filter, setFilter] = useState<'all' | 'today'>('today');
+  const [filter, setFilter] = useState<'all' | 'today' | 'Agendado' | 'Finalizado' | 'Cancelado'>('today');
   const [lastAppointmentId, setLastAppointmentId] = useState<number | null>(null);
   const lastIdRef = React.useRef<number | null>(null);
   const navigate = useNavigate();
@@ -213,6 +213,9 @@ export default function AdminDashboard() {
 
   const filteredAppointments = appointments.filter(app => {
     if (filter === 'today') return isToday(parseISO(app.date));
+    if (filter === 'Agendado') return app.status === 'Agendado' || app.status === 'Confirmado';
+    if (filter === 'Finalizado') return app.status === 'Finalizado';
+    if (filter === 'Cancelado') return app.status === 'Cancelado';
     return true;
   });
 
@@ -294,85 +297,165 @@ export default function AdminDashboard() {
         {activeTab === 'overview' && stats && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+              <motion.div 
+                whileHover={{ y: -5, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-text-light font-medium">Faturamento Total</h3>
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                    <DollarSign className="w-5 h-5" />
+                  <div className="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-600 shadow-inner">
+                    <DollarSign className="w-6 h-6" />
                   </div>
                 </div>
-                <p className="text-3xl font-display">R$ {stats.totalRevenue.toFixed(2)}</p>
-              </div>
-              <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
+                <p className="text-3xl font-display tracking-tight text-text-main">R$ {stats.totalRevenue.toFixed(2)}</p>
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ y: -5, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-text-light font-medium">Agendamentos</h3>
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                    <Calendar className="w-5 h-5" />
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner">
+                    <Calendar className="w-6 h-6" />
                   </div>
                 </div>
-                <p className="text-3xl font-display">{stats.totalAppointments}</p>
-              </div>
-              <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
+                <p className="text-3xl font-display tracking-tight text-text-main">{stats.totalAppointments}</p>
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ y: -5, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-text-light font-medium">Clientes Cadastrados</h3>
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                    <Users className="w-5 h-5" />
+                  <div className="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-inner">
+                    <Users className="w-6 h-6" />
                   </div>
                 </div>
-                <p className="text-3xl font-display">{stats.totalClients}</p>
-              </div>
-              <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
+                <p className="text-3xl font-display tracking-tight text-text-main">{stats.totalClients}</p>
+              </motion.div>
+              
+              <motion.div 
+                whileHover={{ y: -5, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-text-light font-medium">Taxa de Conversão</h3>
-                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-                    <TrendingUp className="w-5 h-5" />
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600 shadow-inner">
+                    <TrendingUp className="w-6 h-6" />
                   </div>
                 </div>
-                <p className="text-3xl font-display">
+                <p className="text-3xl font-display tracking-tight text-text-main">
                   {stats.totalClients > 0 ? Math.round((stats.totalAppointments / stats.totalClients) * 100) : 0}%
                 </p>
-              </div>
+              </motion.div>
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
-                <h3 className="text-lg font-medium mb-6 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-accent" /> Faturamento (Últimos 7 dias)
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-surface p-6 lg:p-8 rounded-3xl border border-secondary shadow-sm hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-medium mb-8 flex items-center text-text-main">
+                  <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center mr-3">
+                    <Activity className="w-4 h-4 text-accent" />
+                  </div>
+                  Faturamento (Últimos 7 dias)
                 </h3>
-                <div className="h-80">
+                <div className="h-[320px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={stats.revenueByDay}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tickFormatter={(val) => format(parseISO(val), 'dd/MM')} stroke="#888" />
-                      <YAxis stroke="#888" />
+                    <LineChart data={stats.revenueByDay} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                      <XAxis 
+                        dataKey="date" 
+                        tickFormatter={(val) => format(parseISO(val), 'dd/MM')} 
+                        stroke="#9ca3af" 
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        dy={10}
+                      />
+                      <YAxis 
+                        stroke="#9ca3af" 
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `R$${value}`}
+                        dx={-10}
+                      />
                       <RechartsTooltip 
                         formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Faturamento']}
                         labelFormatter={(label) => format(parseISO(label), "dd 'de' MMMM", { locale: ptBR })}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        contentStyle={{ borderRadius: '16px', border: '1px solid var(--color-secondary)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                        cursor={{ stroke: 'var(--color-secondary)', strokeWidth: 2, strokeDasharray: '5 5' }}
                       />
-                      <Line type="monotone" dataKey="revenue" stroke="var(--color-primary)" strokeWidth={3} dot={{ r: 4, fill: 'var(--color-primary)' }} activeDot={{ r: 6 }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="var(--color-primary)" 
+                        strokeWidth={4} 
+                        dot={{ r: 4, fill: 'var(--color-surface)', stroke: 'var(--color-primary)', strokeWidth: 2 }} 
+                        activeDot={{ r: 6, fill: 'var(--color-primary)', stroke: 'var(--color-surface)', strokeWidth: 2 }} 
+                        animationDuration={1500}
+                      />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
-                <h3 className="text-lg font-medium mb-6 flex items-center">
-                  <BarChart2 className="w-5 h-5 mr-2 text-accent" /> Serviços Mais Populares
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-surface p-6 lg:p-8 rounded-3xl border border-secondary shadow-sm hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-medium mb-8 flex items-center text-text-main">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                    <BarChart2 className="w-4 h-4 text-primary" />
+                  </div>
+                  Serviços Mais Populares
                 </h3>
-                <div className="h-80">
+                <div className="h-[320px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.appointmentsByService} layout="vertical" margin={{ left: 40 }}>
+                    <BarChart data={stats.appointmentsByService} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 40 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={true} vertical={false} />
-                      <XAxis type="number" stroke="#888" />
-                      <YAxis dataKey="name" type="category" stroke="#888" width={100} />
+                      <XAxis 
+                        type="number" 
+                        stroke="#9ca3af" 
+                        tick={{ fill: '#6b7280', fontSize: 12 }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        stroke="#9ca3af" 
+                        width={120}
+                        tick={{ fill: '#4b5563', fontSize: 12, fontWeight: 500 }}
+                        tickLine={false}
+                        axisLine={false}
+                        dx={-10}
+                      />
                       <RechartsTooltip 
                         formatter={(value: number) => [value, 'Agendamentos']}
-                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        contentStyle={{ borderRadius: '16px', border: '1px solid var(--color-secondary)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                        cursor={{ fill: 'var(--color-secondary)', opacity: 0.4 }}
                       />
-                      <Bar dataKey="count" fill="var(--color-accent)" radius={[0, 4, 4, 0]} barSize={30}>
+                      <Bar 
+                        dataKey="count" 
+                        radius={[0, 6, 6, 0]} 
+                        barSize={24}
+                        animationDuration={1500}
+                      >
                         {stats.appointmentsByService.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--color-primary)' : 'var(--color-accent)'} />
                         ))}
@@ -380,7 +463,7 @@ export default function AdminDashboard() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
         )}
@@ -470,20 +553,38 @@ export default function AdminDashboard() {
 
             {/* Appointments List */}
             <div className="bg-surface rounded-3xl border border-secondary shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-secondary flex justify-between items-center">
+              <div className="p-6 border-b border-secondary flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-xl font-display">Lista de Agendamentos</h2>
-                <div className="flex bg-background p-1 rounded-xl border border-secondary">
+                <div className="flex flex-wrap gap-1 bg-background p-1 rounded-xl border border-secondary">
                   <button 
                     onClick={() => setFilter('today')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'today' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
+                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'today' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
                   >
                     Hoje
                   </button>
                   <button 
                     onClick={() => setFilter('all')}
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'all' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
+                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'all' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
                   >
                     Todos
+                  </button>
+                  <button 
+                    onClick={() => setFilter('Agendado')}
+                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'Agendado' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
+                  >
+                    Aguardando
+                  </button>
+                  <button 
+                    onClick={() => setFilter('Finalizado')}
+                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'Finalizado' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
+                  >
+                    Concluídos
+                  </button>
+                  <button 
+                    onClick={() => setFilter('Cancelado')}
+                    className={`px-3 sm:px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === 'Cancelado' ? 'bg-primary text-text-main shadow-sm' : 'text-text-light hover:text-text-main'}`}
+                  >
+                    Cancelados
                   </button>
                 </div>
               </div>
