@@ -56,10 +56,20 @@ export async function initDb() {
     `;
 
     await database.sql`
+      CREATE TABLE IF NOT EXISTS working_hours (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        day_of_week INTEGER NOT NULL UNIQUE,
+        start_time TEXT NOT NULL,
+        end_time TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT 1
+      );
+    `;
+
+    await database.sql`
       CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         setting_key TEXT NOT NULL UNIQUE,
-        value TEXT NOT NULL
+        value TEXT
       );
     `;
 
@@ -70,6 +80,21 @@ export async function initDb() {
         INSERT INTO settings (setting_key, value) VALUES 
         ('cover_photo', 'https://images.unsplash.com/photo-1587775537446-271510255146?w=1600&q=80'),
         ('profile_photo', 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80')
+      `;
+    }
+
+    // Seed initial working hours
+    const hoursCount = await database.sql`SELECT COUNT(*) as count FROM working_hours`;
+    if (hoursCount[0].count === 0) {
+      await database.sql`
+        INSERT INTO working_hours (day_of_week, start_time, end_time, is_active) VALUES 
+        (0, '09:00', '18:00', 0), -- Sunday (Closed)
+        (1, '09:00', '18:00', 1), -- Monday
+        (2, '09:00', '18:00', 1), -- Tuesday
+        (3, '09:00', '18:00', 1), -- Wednesday
+        (4, '09:00', '18:00', 1), -- Thursday
+        (5, '09:00', '18:00', 1), -- Friday
+        (6, '09:00', '18:00', 1)  -- Saturday
       `;
     }
 

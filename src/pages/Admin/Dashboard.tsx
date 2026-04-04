@@ -27,11 +27,12 @@ interface Service {
 }
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'appointments' | 'services' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'crm' | 'appointments' | 'services' | 'settings' | 'horarios'>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [crmClients, setCrmClients] = useState<any[]>([]);
+  const [workingHours, setWorkingHours] = useState<any[]>([]);
   const [settings, setSettings] = useState({ 
     profile_name: 'Letícia Studio',
     cover_photo: '', 
@@ -104,6 +105,13 @@ export default function AdminDashboard() {
         else setCrmClients([]);
       })
       .catch(() => setCrmClients([]));
+
+    fetch('/api/admin/working-hours')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setWorkingHours(data);
+      })
+      .catch(() => {});
 
     if (isInitial) {
       fetch('/api/settings')
@@ -303,6 +311,15 @@ export default function AdminDashboard() {
           >
             Configurações
             {activeTab === 'settings' && (
+              <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('horarios')}
+            className={`pb-4 px-2 font-medium transition-colors relative whitespace-nowrap ${activeTab === 'horarios' ? 'text-accent' : 'text-text-light hover:text-text-main'}`}
+          >
+            Horários de Atendimento
+            {activeTab === 'horarios' && (
               <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
             )}
           </button>
@@ -898,6 +915,121 @@ export default function AdminDashboard() {
                   </button>
                 </div>
               </form>
+            </div>
+          </motion.div>
+        )}
+
+        {activeTab === 'horarios' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-4xl">
+            <div className="bg-surface p-6 rounded-3xl border border-secondary shadow-sm">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-display text-text-main">Horários de Atendimento</h2>
+                <button 
+                  onClick={async () => {
+                    setSaveMessage({ type: '', text: '' });
+                    try {
+                      const res = await fetch('/api/admin/working-hours', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(workingHours)
+                      });
+                      if (res.ok) {
+                        setSaveMessage({ type: 'success', text: 'Horários salvos com sucesso!' });
+                        setTimeout(() => setSaveMessage({ type: '', text: '' }), 3000);
+                      } else {
+                        setSaveMessage({ type: 'error', text: 'Erro ao salvar horários' });
+                      }
+                    } catch (error) {
+                      setSaveMessage({ type: 'error', text: 'Erro ao salvar horários' });
+                    }
+                  }}
+                  className="px-6 py-2 bg-accent text-white font-medium rounded-xl hover:bg-accent/90 transition-all shadow-md shadow-accent/20"
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+
+              {saveMessage.text && (
+                <div className={`mb-6 p-4 rounded-xl text-sm flex items-center ${saveMessage.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {saveMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 mr-2" /> : <AlertCircle className="w-5 h-5 mr-2" />}
+                  {saveMessage.text}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((day, index) => {
+                  const hourData = workingHours.find(h => h.day_of_week === index) || { start_time: '09:00', end_time: '18:00', is_active: 0 };
+                  return (
+                    <div key={index} className={`p-4 rounded-2xl border transition-all ${hourData.is_active ? 'bg-white border-secondary shadow-sm' : 'bg-secondary/20 border-transparent opacity-60'}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={!!hourData.is_active} 
+                              onChange={(e) => {
+                                const newHours = [...workingHours];
+                                const idx = newHours.findIndex(h => h.day_of_week === index);
+                                if (idx !== -1) {
+                                  newHours[idx].is_active = e.target.checked ? 1 : 0;
+                                } else {
+                                  newHours.push({ day_of_week: index, start_time: '09:00', end_time: '18:00', is_active: e.target.checked ? 1 : 0 });
+                                }
+                                setWorkingHours(newHours);
+                              }}
+                              className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                          </label>
+                          <span className="font-medium text-text-main w-20">{day}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-text-light" />
+                            <input 
+                              type="time" 
+                              value={hourData.start_time}
+                              disabled={!hourData.is_active}
+                              onChange={(e) => {
+                                const newHours = [...workingHours];
+                                const idx = newHours.findIndex(h => h.day_of_week === index);
+                                if (idx !== -1) newHours[idx].start_time = e.target.value;
+                                setWorkingHours(newHours);
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
+                            />
+                          </div>
+                          <span className="text-text-light">até</span>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-text-light" />
+                            <input 
+                              type="time" 
+                              value={hourData.end_time}
+                              disabled={!hourData.is_active}
+                              onChange={(e) => {
+                                const newHours = [...workingHours];
+                                const idx = newHours.findIndex(h => h.day_of_week === index);
+                                if (idx !== -1) newHours[idx].end_time = e.target.value;
+                                setWorkingHours(newHours);
+                              }}
+                              className="px-3 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="text-sm font-medium">
+                          {hourData.is_active ? (
+                            <span className="text-green-600">Aberto</span>
+                          ) : (
+                            <span className="text-red-500">Fechado</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
         )}

@@ -66,6 +66,24 @@ router.get('/availability', async (req, res) => {
 
   try {
     const db = getDb();
+    
+    // Get day of week (0-6)
+    const dayOfWeek = new Date(date as string).getUTCDay();
+    
+    // Get working hours for this day
+    const workingHours = await db.sql(
+      "SELECT * FROM working_hours WHERE day_of_week = ? AND is_active = 1",
+      dayOfWeek
+    ) as { start_time: string, end_time: string }[];
+
+    if (!workingHours || workingHours.length === 0) {
+      return res.json([]); // Closed on this day
+    }
+
+    const { start_time, end_time } = workingHours[0];
+    const startHour = parseInt(start_time.split(':')[0]);
+    const endHour = parseInt(end_time.split(':')[0]);
+
     const appointments = await db.sql(
       "SELECT time FROM appointments WHERE date = ? AND status != 'Cancelado'",
       date
@@ -73,9 +91,9 @@ router.get('/availability', async (req, res) => {
 
     const bookedTimes = appointments.map(a => a.time);
     
-    // Generate times from 09:00 to 18:00 every hour
+    // Generate times based on working hours
     const allTimes = [];
-    for (let i = 9; i <= 18; i++) {
+    for (let i = startHour; i <= endHour; i++) {
       allTimes.push(`${i.toString().padStart(2, '0')}:00`);
     }
 
@@ -346,6 +364,34 @@ router.get('/admin/crm/clients', async (req, res) => {
     res.json(clients);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar lista de clientes' });
+  }
+});
+
+// Admin: Get working hours
+router.get('/admin/working-hours', async (req, res) => {
+  try {
+    const db = getDb();
+    const hours = await db.sql('SELECT * FROM working_hours ORDER BY day_of_week ASC');
+    res.json(hours);
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar horários de trabalho' });
+  }
+});
+
+// Admin: Update working hours
+router.put('/admin/working-hours', async (req, res) => {
+  const hours = req.body; // Array of working hours
+  try {
+    const db = getDb();
+    for (const h of hours) {
+      await db.sql(
+        'UPDATE working_hours SET start_time = ?, end_time = ?, is_active = ? WHERE day_of_week = ?',
+        h.start_time, h.end_time, h.is_active ? 1 : 0, h.day_of_week
+      );
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao atualizar horários de trabalho' });
   }
 });
 
