@@ -250,15 +250,15 @@ export default function BookingFlow() {
                     <button
                       key={service.id}
                       onClick={() => { setSelectedService(service); handleNext(); }}
-                      className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 flex justify-between items-center ${selectedService?.id === service.id ? 'border-accent bg-accent/5' : 'border-secondary hover:border-primary'}`}
+                      className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 flex justify-between items-center gap-4 ${selectedService?.id === service.id ? 'border-accent bg-accent/5' : 'border-secondary hover:border-primary'}`}
                     >
-                      <div>
-                        <h3 className="text-lg font-medium mb-1">{service.name}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-medium mb-1 truncate">{service.name}</h3>
                         <div className="flex items-center text-sm text-text-light">
-                          <Clock className="w-4 h-4 mr-1" /> {service.duration} min
+                          <Clock className="w-4 h-4 mr-1 shrink-0" /> {service.duration} min
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0 whitespace-nowrap">
                         {service.promotional_price ? (
                           <>
                             <div className="text-xs text-text-light line-through">R$ {service.price.toFixed(2)}</div>
