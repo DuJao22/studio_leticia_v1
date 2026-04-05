@@ -61,9 +61,19 @@ export async function initDb() {
         day_of_week INTEGER NOT NULL UNIQUE,
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
+        start_time_2 TEXT,
+        end_time_2 TEXT,
         is_active BOOLEAN DEFAULT 1
       );
     `;
+
+    // Migration for existing table
+    try {
+      await database.sql`ALTER TABLE working_hours ADD COLUMN start_time_2 TEXT`;
+      await database.sql`ALTER TABLE working_hours ADD COLUMN end_time_2 TEXT`;
+    } catch (e) {
+      // Ignore if columns already exist
+    }
 
     await database.sql`
       CREATE TABLE IF NOT EXISTS settings (

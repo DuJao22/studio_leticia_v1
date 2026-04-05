@@ -961,32 +961,43 @@ export default function AdminDashboard() {
                   const hourData = workingHours.find(h => h.day_of_week === index) || { start_time: '09:00', end_time: '18:00', is_active: 0 };
                   return (
                     <div key={index} className={`p-4 rounded-2xl border transition-all ${hourData.is_active ? 'bg-white border-secondary shadow-sm' : 'bg-secondary/20 border-transparent opacity-60'}`}>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                              type="checkbox" 
-                              checked={!!hourData.is_active} 
-                              onChange={(e) => {
-                                const newHours = [...workingHours];
-                                const idx = newHours.findIndex(h => h.day_of_week === index);
-                                if (idx !== -1) {
-                                  newHours[idx].is_active = e.target.checked ? 1 : 0;
-                                } else {
-                                  newHours.push({ day_of_week: index, start_time: '09:00', end_time: '18:00', is_active: e.target.checked ? 1 : 0 });
-                                }
-                                setWorkingHours(newHours);
-                              }}
-                              className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
-                          </label>
-                          <span className="font-medium text-text-main w-20">{day}</span>
+                      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                        <div className="flex items-center justify-between xl:justify-start gap-4">
+                          <div className="flex items-center gap-4">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input 
+                                type="checkbox" 
+                                checked={!!hourData.is_active} 
+                                onChange={(e) => {
+                                  const newHours = [...workingHours];
+                                  const idx = newHours.findIndex(h => h.day_of_week === index);
+                                  if (idx !== -1) {
+                                    newHours[idx].is_active = e.target.checked ? 1 : 0;
+                                  } else {
+                                    newHours.push({ day_of_week: index, start_time: '09:00', end_time: '18:00', is_active: e.target.checked ? 1 : 0 });
+                                  }
+                                  setWorkingHours(newHours);
+                                }}
+                                className="sr-only peer"
+                              />
+                              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
+                            </label>
+                            <span className="font-medium text-text-main w-20">{day}</span>
+                          </div>
+                          <div className="text-sm font-medium xl:hidden">
+                            {hourData.is_active ? (
+                              <span className="text-green-600">Aberto</span>
+                            ) : (
+                              <span className="text-red-500">Fechado</span>
+                            )}
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-text-light" />
+                        <div className="flex flex-col xl:flex-row xl:items-center gap-3 w-full sm:w-auto mt-3 sm:mt-0">
+                          {/* First Shift */}
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Clock className="w-4 h-4 text-text-light shrink-0 hidden sm:block" />
+                            <span className="text-xs text-text-light w-10 sm:hidden shrink-0">1º T:</span>
                             <input 
                               type="time" 
                               value={hourData.start_time}
@@ -997,12 +1008,10 @@ export default function AdminDashboard() {
                                 if (idx !== -1) newHours[idx].start_time = e.target.value;
                                 setWorkingHours(newHours);
                               }}
-                              className="px-3 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
+                              className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
-                          </div>
-                          <span className="text-text-light">até</span>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-text-light" />
+                            <span className="text-text-light text-sm shrink-0">até</span>
+                            <Clock className="w-4 h-4 text-text-light shrink-0 hidden sm:block" />
                             <input 
                               type="time" 
                               value={hourData.end_time}
@@ -1013,12 +1022,44 @@ export default function AdminDashboard() {
                                 if (idx !== -1) newHours[idx].end_time = e.target.value;
                                 setWorkingHours(newHours);
                               }}
-                              className="px-3 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
+                              className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
+                            />
+                          </div>
+                          
+                          {/* Second Shift */}
+                          <div className="flex items-center gap-2 w-full sm:w-auto xl:border-l xl:border-secondary xl:pl-3">
+                            <span className="text-xs text-text-light w-10 sm:w-auto shrink-0">2º T:</span>
+                            <Clock className="w-4 h-4 text-text-light shrink-0 hidden sm:block" />
+                            <input 
+                              type="time" 
+                              value={hourData.start_time_2 || ''}
+                              disabled={!hourData.is_active}
+                              onChange={(e) => {
+                                const newHours = [...workingHours];
+                                const idx = newHours.findIndex(h => h.day_of_week === index);
+                                if (idx !== -1) newHours[idx].start_time_2 = e.target.value;
+                                setWorkingHours(newHours);
+                              }}
+                              className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
+                            />
+                            <span className="text-text-light text-sm shrink-0">até</span>
+                            <Clock className="w-4 h-4 text-text-light shrink-0 hidden sm:block" />
+                            <input 
+                              type="time" 
+                              value={hourData.end_time_2 || ''}
+                              disabled={!hourData.is_active}
+                              onChange={(e) => {
+                                const newHours = [...workingHours];
+                                const idx = newHours.findIndex(h => h.day_of_week === index);
+                                if (idx !== -1) newHours[idx].end_time_2 = e.target.value;
+                                setWorkingHours(newHours);
+                              }}
+                              className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
                           </div>
                         </div>
 
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-medium hidden xl:block">
                           {hourData.is_active ? (
                             <span className="text-green-600">Aberto</span>
                           ) : (

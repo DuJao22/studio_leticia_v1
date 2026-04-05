@@ -74,15 +74,13 @@ router.get('/availability', async (req, res) => {
     const workingHours = await db.sql(
       "SELECT * FROM working_hours WHERE day_of_week = ? AND is_active = 1",
       dayOfWeek
-    ) as { start_time: string, end_time: string }[];
+    ) as { start_time: string, end_time: string, start_time_2?: string, end_time_2?: string }[];
 
     if (!workingHours || workingHours.length === 0) {
       return res.json([]); // Closed on this day
     }
 
-    const { start_time, end_time } = workingHours[0];
-    const startHour = parseInt(start_time.split(':')[0]);
-    const endHour = parseInt(end_time.split(':')[0]);
+    const { start_time, end_time, start_time_2, end_time_2 } = workingHours[0];
 
     const appointments = await db.sql(
       "SELECT time FROM appointments WHERE date = ? AND status != 'Cancelado'",
@@ -92,10 +90,24 @@ router.get('/availability', async (req, res) => {
     const bookedTimes = appointments.map(a => a.time);
     
     // Generate times based on working hours
-    const allTimes = [];
-    for (let i = startHour; i <= endHour; i++) {
-      allTimes.push(`${i.toString().padStart(2, '0')}:00`);
-    }
+    const allTimes: string[] = [];
+    
+    const addTimes = (start?: string, end?: string) => {
+      if (!start || !end) return;
+      const startHour = parseInt(start.split(':')[0]);
+      const endHour = parseInt(end.split(':')[0]);
+      for (let i = startHour; i <= endHour; i++) {
+        const timeStr = `${i.toString().padStart(2, '0')}:00`;
+        if (!allTimes.includes(timeStr)) {
+          allTimes.push(timeStr);
+        }
+      }
+    };
+
+    addTimes(start_time, end_time);
+    addTimes(start_time_2, end_time_2);
+    
+    allTimes.sort();
 
     const availableTimes = allTimes.filter(time => !bookedTimes.includes(time));
     res.json(availableTimes);
@@ -385,8 +397,8 @@ router.put('/admin/working-hours', async (req, res) => {
     const db = getDb();
     for (const h of hours) {
       await db.sql(
-        'UPDATE working_hours SET start_time = ?, end_time = ?, is_active = ? WHERE day_of_week = ?',
-        h.start_time, h.end_time, h.is_active ? 1 : 0, h.day_of_week
+        'UPDATE working_hours SET start_time = ?, end_time = ?, start_time_2 = ?, end_time_2 = ?, is_active = ? WHERE day_of_week = ?',
+        h.start_time, h.end_time, h.start_time_2 || null, h.end_time_2 || null, h.is_active ? 1 : 0, h.day_of_week
       );
     }
     res.json({ success: true });
