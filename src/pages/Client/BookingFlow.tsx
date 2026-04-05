@@ -58,13 +58,13 @@ export default function BookingFlow() {
 
   // Fetch availability when date changes
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && selectedService) {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      fetch(`/api/availability?date=${dateStr}`)
+      fetch(`/api/availability?date=${dateStr}&service_id=${selectedService.id}`)
         .then(res => res.json())
         .then(setAvailableTimes);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedService]);
 
   const handleNext = () => setStep(s => Math.min(s + 1, 4));
   const handlePrev = () => setStep(s => Math.max(s - 1, 1));

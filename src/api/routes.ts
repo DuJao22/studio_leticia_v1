@@ -59,13 +59,22 @@ router.get('/services', async (req, res) => {
 
 // Get available times on a specific date
 router.get('/availability', async (req, res) => {
-  const { date } = req.query;
+  const { date, service_id } = req.query;
   if (!date) {
     return res.status(400).json({ error: 'date is required' });
   }
 
   try {
     const db = getDb();
+    
+    // Get service duration
+    let duration = 40; // default to 40 minutes
+    if (service_id) {
+      const service = await db.sql('SELECT duration FROM services WHERE id = ?', service_id) as { duration: number }[];
+      if (service && service.length > 0) {
+        duration = service[0].duration;
+      }
+    }
     
     // Get day of week (0-6)
     const dayOfWeek = new Date(date as string).getUTCDay();
@@ -94,13 +103,23 @@ router.get('/availability', async (req, res) => {
     
     const addTimes = (start?: string, end?: string) => {
       if (!start || !end) return;
-      const startHour = parseInt(start.split(':')[0]);
-      const endHour = parseInt(end.split(':')[0]);
-      for (let i = startHour; i <= endHour; i++) {
-        const timeStr = `${i.toString().padStart(2, '0')}:00`;
+      
+      const [startHour, startMinute] = start.split(':').map(Number);
+      const [endHour, endMinute] = end.split(':').map(Number);
+      
+      let currentInMinutes = startHour * 60 + startMinute;
+      const endInMinutes = endHour * 60 + endMinute;
+      
+      while (currentInMinutes + duration <= endInMinutes) {
+        const h = Math.floor(currentInMinutes / 60).toString().padStart(2, '0');
+        const m = (currentInMinutes % 60).toString().padStart(2, '0');
+        const timeStr = `${h}:${m}`;
+        
         if (!allTimes.includes(timeStr)) {
           allTimes.push(timeStr);
         }
+        
+        currentInMinutes += duration; // Use service duration as interval
       }
     };
 
