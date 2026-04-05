@@ -1,4 +1,4 @@
-const http = require('http');
+import http from 'http';
 
 http.get('http://localhost:3000/api/admin/working-hours', (res) => {
   let data = '';

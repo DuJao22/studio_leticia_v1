@@ -1038,6 +1038,16 @@ export default function AdminDashboard() {
                               type="time" 
                               value={hourData.start_time_2 || ''}
                               disabled={!hourData.is_active}
+                              onFocus={() => {
+                                if (!hourData.start_time_2) {
+                                  const newHours = [...workingHours];
+                                  const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                  if (idx !== -1) {
+                                    newHours[idx] = { ...newHours[idx], start_time_2: '14:00' };
+                                    setWorkingHours(newHours);
+                                  }
+                                }
+                              }}
                               onChange={(e) => {
                                 const newHours = [...workingHours];
                                 const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
@@ -1054,6 +1064,16 @@ export default function AdminDashboard() {
                               type="time" 
                               value={hourData.end_time_2 || ''}
                               disabled={!hourData.is_active}
+                              onFocus={() => {
+                                if (!hourData.end_time_2) {
+                                  const newHours = [...workingHours];
+                                  const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                  if (idx !== -1) {
+                                    newHours[idx] = { ...newHours[idx], end_time_2: '18:00' };
+                                    setWorkingHours(newHours);
+                                  }
+                                }
+                              }}
                               onChange={(e) => {
                                 const newHours = [...workingHours];
                                 const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
@@ -1064,6 +1084,24 @@ export default function AdminDashboard() {
                               }}
                               className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
+                            {(hourData.start_time_2 || hourData.end_time_2) && (
+                              <button
+                                type="button"
+                                disabled={!hourData.is_active}
+                                onClick={() => {
+                                  const newHours = [...workingHours];
+                                  const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                  if (idx !== -1) {
+                                    newHours[idx] = { ...newHours[idx], start_time_2: '', end_time_2: '' };
+                                    setWorkingHours(newHours);
+                                  }
+                                }}
+                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                                title="Remover 2º Turno"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
 
