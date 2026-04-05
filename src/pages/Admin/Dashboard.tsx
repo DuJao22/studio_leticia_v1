@@ -106,14 +106,14 @@ export default function AdminDashboard() {
       })
       .catch(() => setCrmClients([]));
 
-    fetch('/api/admin/working-hours')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setWorkingHours(data);
-      })
-      .catch(() => {});
-
     if (isInitial) {
+      fetch('/api/admin/working-hours')
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) setWorkingHours(data);
+        })
+        .catch(() => {});
+
       fetch('/api/settings')
         .then(res => res.json())
         .then(data => {
@@ -958,7 +958,7 @@ export default function AdminDashboard() {
 
               <div className="space-y-4">
                 {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((day, index) => {
-                  const hourData = workingHours.find(h => h.day_of_week === index) || { start_time: '09:00', end_time: '18:00', is_active: 0 };
+                  const hourData = workingHours.find(h => Number(h.day_of_week) === index) || { start_time: '09:00', end_time: '18:00', is_active: 0 };
                   return (
                     <div key={index} className={`p-4 rounded-2xl border transition-all ${hourData.is_active ? 'bg-white border-secondary shadow-sm' : 'bg-secondary/20 border-transparent opacity-60'}`}>
                       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
@@ -970,9 +970,9 @@ export default function AdminDashboard() {
                                 checked={!!hourData.is_active} 
                                 onChange={(e) => {
                                   const newHours = [...workingHours];
-                                  const idx = newHours.findIndex(h => h.day_of_week === index);
+                                  const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
                                   if (idx !== -1) {
-                                    newHours[idx].is_active = e.target.checked ? 1 : 0;
+                                    newHours[idx] = { ...newHours[idx], is_active: e.target.checked ? 1 : 0 };
                                   } else {
                                     newHours.push({ day_of_week: index, start_time: '09:00', end_time: '18:00', is_active: e.target.checked ? 1 : 0 });
                                   }
@@ -1004,9 +1004,11 @@ export default function AdminDashboard() {
                               disabled={!hourData.is_active}
                               onChange={(e) => {
                                 const newHours = [...workingHours];
-                                const idx = newHours.findIndex(h => h.day_of_week === index);
-                                if (idx !== -1) newHours[idx].start_time = e.target.value;
-                                setWorkingHours(newHours);
+                                const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                if (idx !== -1) {
+                                  newHours[idx] = { ...newHours[idx], start_time: e.target.value };
+                                  setWorkingHours(newHours);
+                                }
                               }}
                               className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
@@ -1018,9 +1020,11 @@ export default function AdminDashboard() {
                               disabled={!hourData.is_active}
                               onChange={(e) => {
                                 const newHours = [...workingHours];
-                                const idx = newHours.findIndex(h => h.day_of_week === index);
-                                if (idx !== -1) newHours[idx].end_time = e.target.value;
-                                setWorkingHours(newHours);
+                                const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                if (idx !== -1) {
+                                  newHours[idx] = { ...newHours[idx], end_time: e.target.value };
+                                  setWorkingHours(newHours);
+                                }
                               }}
                               className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
@@ -1036,9 +1040,11 @@ export default function AdminDashboard() {
                               disabled={!hourData.is_active}
                               onChange={(e) => {
                                 const newHours = [...workingHours];
-                                const idx = newHours.findIndex(h => h.day_of_week === index);
-                                if (idx !== -1) newHours[idx].start_time_2 = e.target.value;
-                                setWorkingHours(newHours);
+                                const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                if (idx !== -1) {
+                                  newHours[idx] = { ...newHours[idx], start_time_2: e.target.value };
+                                  setWorkingHours(newHours);
+                                }
                               }}
                               className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
@@ -1050,9 +1056,11 @@ export default function AdminDashboard() {
                               disabled={!hourData.is_active}
                               onChange={(e) => {
                                 const newHours = [...workingHours];
-                                const idx = newHours.findIndex(h => h.day_of_week === index);
-                                if (idx !== -1) newHours[idx].end_time_2 = e.target.value;
-                                setWorkingHours(newHours);
+                                const idx = newHours.findIndex(h => Number(h.day_of_week) === index);
+                                if (idx !== -1) {
+                                  newHours[idx] = { ...newHours[idx], end_time_2: e.target.value };
+                                  setWorkingHours(newHours);
+                                }
                               }}
                               className="flex-1 sm:flex-none min-w-[80px] px-2 py-1.5 rounded-lg border border-secondary focus:border-accent outline-none text-sm disabled:opacity-50"
                             />
