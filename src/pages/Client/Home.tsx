@@ -17,6 +17,8 @@ interface Service {
 
 export default function Home() {
   const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState({ 
     profile_name: 'Letícia Studio',
     cover_photo: 'https://images.unsplash.com/photo-1587775537446-271510255146?w=1600&q=80', 
@@ -34,29 +36,46 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch('/api/services')
-      .then(res => res.json())
-      .then(data => setServices(data));
+    const fetchData = async () => {
+      try {
+        const [servicesRes, settingsRes] = await Promise.all([
+          fetch('/api/services'),
+          fetch('/api/settings')
+        ]);
 
-    fetch('/api/settings')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error) {
+        if (!servicesRes.ok || !settingsRes.ok) {
+          throw new Error('Falha ao carregar dados do servidor');
+        }
+
+        const servicesData = await servicesRes.json();
+        const settingsData = await settingsRes.json();
+
+        setServices(servicesData);
+        
+        if (!settingsData.error) {
           setSettings(prev => ({
-            profile_name: data.profile_name || prev.profile_name,
-            cover_photo: data.cover_photo || prev.cover_photo,
-            profile_photo: data.profile_photo || prev.profile_photo,
-            subtitle: data.subtitle || prev.subtitle,
-            services_title: data.services_title || prev.services_title,
-            services_subtitle: data.services_subtitle || prev.services_subtitle,
-            btn_schedule: data.btn_schedule || prev.btn_schedule,
-            btn_account: data.btn_account || prev.btn_account,
-            btn_service_schedule: data.btn_service_schedule || prev.btn_service_schedule,
-            instagram_url: data.instagram_url || prev.instagram_url,
-            tiktok_url: data.tiktok_url || prev.tiktok_url
+            profile_name: settingsData.profile_name || prev.profile_name,
+            cover_photo: settingsData.cover_photo || prev.cover_photo,
+            profile_photo: settingsData.profile_photo || prev.profile_photo,
+            subtitle: settingsData.subtitle || prev.subtitle,
+            services_title: settingsData.services_title || prev.services_title,
+            services_subtitle: settingsData.services_subtitle || prev.services_subtitle,
+            btn_schedule: settingsData.btn_schedule || prev.btn_schedule,
+            btn_account: settingsData.btn_account || prev.btn_account,
+            btn_service_schedule: settingsData.btn_service_schedule || prev.btn_service_schedule,
+            instagram_url: settingsData.instagram_url || prev.instagram_url,
+            tiktok_url: settingsData.tiktok_url || prev.tiktok_url
           }));
         }
-      });
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Não foi possível carregar as informações. Verifique sua conexão.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
 
     // Handle scroll to hash if present
     if (window.location.hash === '#servicos') {
@@ -178,52 +197,73 @@ export default function Home() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service, index) => (
-              <motion.div
-                key={service.id}
-                onClick={() => navigate('/agendar', { state: { serviceId: service.id } })}
-                initial={{ opacity: 0, y: 50, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ delay: index * 0.1, duration: 0.5, type: "spring" }}
-                whileHover={{ y: -10 }}
-                className="group bg-surface/80 backdrop-blur-md rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary cursor-pointer"
-              >
-                <div className="relative h-64 overflow-hidden">
-                  <img 
-                    src={service.image} 
-                    alt={service.name} 
-                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute bottom-4 left-0 w-full text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
-                    <span className="inline-block px-6 py-2 bg-white/20 backdrop-blur-md text-white rounded-full font-medium border border-white/30">
-                      {settings.btn_service_schedule}
-                    </span>
-                  </div>
-                </div>
-                <div className="p-8">
-                  <h3 className="text-2xl font-display mb-2 text-accent">{service.name}</h3>
-                  <p className="text-text-light mb-6 line-clamp-2">{service.description}</p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-text-light text-sm">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {service.duration} min
+            {loading ? (
+              <div className="col-span-full py-20 text-center">
+                <div className="inline-block w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-text-light">Carregando serviços...</p>
+              </div>
+            ) : error ? (
+              <div className="col-span-full py-20 text-center bg-surface/50 rounded-3xl border border-secondary">
+                <p className="text-accent mb-4">{error}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-2 bg-accent text-white rounded-full hover:bg-accent/90 transition-all"
+                >
+                  Tentar Novamente
+                </button>
+              </div>
+            ) : services.length === 0 ? (
+              <div className="col-span-full py-20 text-center">
+                <p className="text-text-light">Nenhum serviço disponível no momento.</p>
+              </div>
+            ) : (
+              services.map((service, index) => (
+                <motion.div
+                  key={service.id}
+                  onClick={() => navigate('/agendar', { state: { serviceId: service.id } })}
+                  initial={{ opacity: 0, y: 50, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ delay: index * 0.1, duration: 0.5, type: "spring" }}
+                  whileHover={{ y: -10 }}
+                  className="group bg-surface/80 backdrop-blur-md rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-secondary cursor-pointer"
+                >
+                  <div className="relative h-64 overflow-hidden">
+                    <img 
+                      src={service.image} 
+                      alt={service.name} 
+                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="absolute bottom-4 left-0 w-full text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
+                      <span className="inline-block px-6 py-2 bg-white/20 backdrop-blur-md text-white rounded-full font-medium border border-white/30">
+                        {settings.btn_service_schedule}
+                      </span>
                     </div>
-                    <div className="text-right">
-                      {service.promotional_price ? (
-                        <>
-                          <div className="text-xs text-text-light line-through">R$ {service.price.toFixed(2)}</div>
-                          <div className="text-lg font-medium text-primary">R$ {service.promotional_price.toFixed(2)}</div>
-                        </>
-                      ) : (
-                        <div className="text-lg font-medium text-primary">R$ {service.price.toFixed(2)}</div>
-                      )}
+                  </div>
+                  <div className="p-8">
+                    <h3 className="text-2xl font-display mb-2 text-accent">{service.name}</h3>
+                    <p className="text-text-light mb-6 line-clamp-2">{service.description}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center text-text-light text-sm">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {service.duration} min
+                      </div>
+                      <div className="text-right">
+                        {service.promotional_price ? (
+                          <>
+                            <div className="text-xs text-text-light line-through">R$ {service.price.toFixed(2)}</div>
+                            <div className="text-lg font-medium text-primary">R$ {service.promotional_price.toFixed(2)}</div>
+                          </>
+                        ) : (
+                          <div className="text-lg font-medium text-primary">R$ {service.price.toFixed(2)}</div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            )}
           </div>
         </section>
       </div>

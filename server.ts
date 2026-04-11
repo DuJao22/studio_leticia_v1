@@ -7,21 +7,41 @@ import { initCronJobs } from "./src/api/cron";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json());
+
+  // Health check endpoint
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
 
   // Initialize Database
   try {
     console.log("Initializing database...");
+    // Increase timeout to 15 seconds for remote connection
     await Promise.race([
       initDb(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Database initialization timed out")), 5000))
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Database initialization timed out after 15s")), 15000))
     ]);
-    console.log("Database initialized.");
+    console.log("Database initialized successfully.");
   } catch (err) {
-    console.error("Failed to initialize database:", err);
+    console.error("CRITICAL: Failed to initialize database:", err);
+    // In production, we might want to exit if DB is critical
+    if (process.env.NODE_ENV === "production") {
+      console.error("Exiting due to database initialization failure.");
+      process.exit(1);
+    }
   }
+
+  // Global error handlers
+  process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+  });
 
   // Initialize Cron Jobs
   initCronJobs();

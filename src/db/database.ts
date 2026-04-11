@@ -1,20 +1,39 @@
 import { Database } from '@sqlitecloud/drivers';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 let db: Database | null = null;
 
-const CONNECTION_STRING = 'sqlitecloud://ct9xsnnpvz.g1.sqlite.cloud:8860/Studio_leticia.db?apikey=c9lGTn4sb98t3kl3w2gU8cMXQiKDavSd7QF3vTwHV9Q';
+const DEFAULT_CONNECTION_STRING = 'sqlitecloud://ct9xsnnpvz.g1.sqlite.cloud:8860/Studio_leticia.db?apikey=c9lGTn4sb98t3kl3w2gU8cMXQiKDavSd7QF3vTwHV9Q';
+const CONNECTION_STRING = process.env.SQLITE_CLOUD_CONNECTION_STRING || DEFAULT_CONNECTION_STRING;
+
+if (!process.env.SQLITE_CLOUD_CONNECTION_STRING) {
+  console.warn('WARNING: SQLITE_CLOUD_CONNECTION_STRING not found in environment variables. Using default connection string.');
+}
 
 export function getDb() {
   if (!db) {
-    db = new Database(CONNECTION_STRING);
+    try {
+      db = new Database(CONNECTION_STRING);
+      console.log('Database connection instance created.');
+    } catch (error) {
+      console.error('Failed to create database connection instance:', error);
+      throw error;
+    }
   }
   return db;
 }
 
-export async function initDb() {
+export async function initDb(retries = 3): Promise<void> {
   const database = getDb();
   
+  console.log(`Starting database tables initialization (attempts remaining: ${retries})...`);
   try {
+    // Test connection
+    await database.sql`SELECT 1`;
+    console.log('Database connection test successful.');
+
     await database.sql`
       CREATE TABLE IF NOT EXISTS services (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +90,7 @@ export async function initDb() {
     try {
       await database.sql`ALTER TABLE working_hours ADD COLUMN start_time_2 TEXT`;
       await database.sql`ALTER TABLE working_hours ADD COLUMN end_time_2 TEXT`;
+      console.log('Migration: Added second shift columns to working_hours.');
     } catch (e) {
       // Ignore if columns already exist
     }
@@ -86,6 +106,7 @@ export async function initDb() {
     // Seed initial settings
     const settingsCount = await database.sql`SELECT COUNT(*) as count FROM settings`;
     if (settingsCount[0].count === 0) {
+      console.log('Seeding initial settings...');
       await database.sql`
         INSERT INTO settings (setting_key, value) VALUES 
         ('cover_photo', 'https://images.unsplash.com/photo-1587775537446-271510255146?w=1600&q=80'),
@@ -96,6 +117,7 @@ export async function initDb() {
     // Seed initial working hours
     const hoursCount = await database.sql`SELECT COUNT(*) as count FROM working_hours`;
     if (hoursCount[0].count === 0) {
+      console.log('Seeding initial working hours...');
       await database.sql`
         INSERT INTO working_hours (day_of_week, start_time, end_time, is_active) VALUES 
         (0, '09:00', '18:00', 0), -- Sunday (Closed)
@@ -111,6 +133,7 @@ export async function initDb() {
     // Seed initial data if empty
     const services = await database.sql`SELECT COUNT(*) as count FROM services`;
     if (services[0].count === 0) {
+      console.log('Seeding initial services...');
       await database.sql`
         INSERT INTO services (name, description, duration, price, promotional_price, image) VALUES 
         ('Manicure', 'Cuidado completo para suas unhas com esmaltação premium.', 60, 50.00, 40.00, 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=500&q=80'),
@@ -120,7 +143,14 @@ export async function initDb() {
         ('Tratamento Capilar', 'Hidratação profunda e reconstrução dos fios.', 90, 180.00, 150.00, 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=500&q=80');
       `;
     }
+    console.log('Database initialization completed successfully.');
   } catch (error) {
     console.error('Error initializing SQLite Cloud database:', error);
+    if (retries > 0) {
+      console.log('Retrying database initialization in 3 seconds...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return initDb(retries - 1);
+    }
+    throw error; // Re-throw to be caught by server initialization
   }
 }
