@@ -1,7 +1,7 @@
 import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
-import { initDb } from "./src/db/database";
+import { initDb, pingDb } from "./src/db/database";
 import apiRoutes from "./src/api/routes";
 import { initCronJobs } from "./src/api/cron";
 
@@ -25,6 +25,16 @@ async function startServer() {
       new Promise((_, reject) => setTimeout(() => reject(new Error("Database initialization timed out after 15s")), 15000))
     ]);
     console.log("Database initialized successfully.");
+    
+    // Start periodic ping to keep connection alive (every 2 minutes)
+    setInterval(async () => {
+      console.log(`[${new Date().toISOString()}] Running periodic database ping...`);
+      const success = await pingDb();
+      if (!success) {
+        console.error(`[${new Date().toISOString()}] Database ping failed!`);
+      }
+    }, 2 * 60 * 1000);
+
   } catch (err) {
     console.error("CRITICAL: Failed to initialize database:", err);
     // In production, we might want to exit if DB is critical

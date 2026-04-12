@@ -15,6 +15,8 @@ export default function BookingFlow() {
   const [step, setStep] = useState(1);
   const [services, setServices] = useState<Service[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Booking State
   const [selectedService, setSelectedService] = useState<Service | null>(null);
@@ -37,33 +39,74 @@ export default function BookingFlow() {
 
   // Fetch initial data
   useEffect(() => {
-    fetch('/api/services')
-      .then(res => res.json())
-      .then(data => {
-        setServices(data);
+    const fetchServices = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch('/api/services', { signal: controller.signal });
+        clearTimeout(timeoutId);
         
-        // Auto-select service if passed via navigation state
-        const preselectedId = location.state?.serviceId;
-        if (preselectedId) {
-          const service = data.find((s: Service) => s.id === preselectedId);
-          if (service) {
-            setSelectedService(service);
-            setStep(2);
-            // Clear state so it doesn't auto-forward again if user goes back
-            navigate('.', { replace: true, state: {} });
+        if (!res.ok) throw new Error('Falha ao carregar serviços');
+        const data = await res.json();
+        
+        if (Array.isArray(data)) {
+          setServices(data);
+          
+          // Auto-select service if passed via navigation state
+          const preselectedId = location.state?.serviceId;
+          if (preselectedId) {
+            const service = data.find((s: Service) => s.id === preselectedId);
+            if (service) {
+              setSelectedService(service);
+              setStep(2);
+              // Clear state so it doesn't auto-forward again if user goes back
+              navigate('.', { replace: true, state: {} });
+            }
           }
         }
-      });
+      } catch (err: any) {
+        console.error('Error fetching services:', err);
+        if (err.name === 'AbortError') {
+          setError('O servidor demorou muito para responder. Tente novamente.');
+        } else {
+          setError('Não foi possível carregar os serviços. Verifique sua conexão.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
   }, [location.state, navigate]);
 
   // Fetch availability when date changes
   useEffect(() => {
-    if (selectedDate && selectedService) {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      fetch(`/api/availability?date=${dateStr}&service_id=${selectedService.id}`)
-        .then(res => res.json())
-        .then(setAvailableTimes);
-    }
+    const fetchAvailability = async () => {
+      if (selectedDate && selectedService) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+        try {
+          const dateStr = format(selectedDate, 'yyyy-MM-dd');
+          const res = await fetch(`/api/availability?date=${dateStr}&service_id=${selectedService.id}`, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (!res.ok) throw new Error('Falha ao carregar horários');
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setAvailableTimes(data);
+          }
+        } catch (err: any) {
+          console.error('Error fetching availability:', err);
+          setAvailableTimes([]);
+        }
+      }
+    };
+
+    fetchAvailability();
   }, [selectedDate, selectedService]);
 
   const handleNext = () => setStep(s => Math.min(s + 1, 4));
@@ -245,32 +288,52 @@ export default function BookingFlow() {
                 className="p-6 md:p-8 pb-32 md:pb-32"
               >
                 <h2 className="text-2xl font-display mb-6">Escolha o Serviço</h2>
-                <div className="space-y-4">
-                  {services.map(service => (
-                    <button
-                      key={service.id}
-                      onClick={() => { setSelectedService(service); handleNext(); }}
-                      className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 flex justify-between items-center gap-4 ${selectedService?.id === service.id ? 'border-accent bg-accent/5' : 'border-secondary hover:border-primary'}`}
+                
+                {loading ? (
+                  <div className="py-20 text-center">
+                    <div className="inline-block w-10 h-10 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-text-light">Carregando serviços...</p>
+                  </div>
+                ) : error ? (
+                  <div className="py-12 text-center bg-secondary/20 rounded-2xl border border-secondary">
+                    <p className="text-accent mb-4">{error}</p>
+                    <button 
+                      onClick={() => window.location.reload()}
+                      className="px-6 py-2 bg-accent text-white rounded-full hover:bg-accent/90 transition-all"
                     >
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-medium mb-1 truncate">{service.name}</h3>
-                        <div className="flex items-center text-sm text-text-light">
-                          <Clock className="w-4 h-4 mr-1 shrink-0" /> {service.duration} min
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0 whitespace-nowrap">
-                        {service.promotional_price ? (
-                          <>
-                            <div className="text-xs text-text-light line-through">R$ {service.price.toFixed(2)}</div>
-                            <div className="text-lg font-medium text-accent">R$ {service.promotional_price.toFixed(2)}</div>
-                          </>
-                        ) : (
-                          <div className="text-lg font-medium text-accent">R$ {service.price.toFixed(2)}</div>
-                        )}
-                      </div>
+                      Tentar Novamente
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : services.length === 0 ? (
+                  <p className="text-center py-12 text-text-light">Nenhum serviço disponível.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {services.map(service => (
+                      <button
+                        key={service.id}
+                        onClick={() => { setSelectedService(service); handleNext(); }}
+                        className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 flex justify-between items-center gap-4 ${selectedService?.id === service.id ? 'border-accent bg-accent/5' : 'border-secondary hover:border-primary'}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-medium mb-1 truncate">{service.name}</h3>
+                          <div className="flex items-center text-sm text-text-light">
+                            <Clock className="w-4 h-4 mr-1 shrink-0" /> {service.duration} min
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 whitespace-nowrap">
+                          {service.promotional_price ? (
+                            <>
+                              <div className="text-xs text-text-light line-through">R$ {service.price.toFixed(2)}</div>
+                              <div className="text-lg font-medium text-accent">R$ {service.promotional_price.toFixed(2)}</div>
+                            </>
+                          ) : (
+                            <div className="text-lg font-medium text-accent">R$ {service.price.toFixed(2)}</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             )}
 

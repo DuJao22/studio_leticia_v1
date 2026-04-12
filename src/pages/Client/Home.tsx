@@ -37,11 +37,16 @@ export default function Home() {
 
   useEffect(() => {
     const fetchData = async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       try {
         const [servicesRes, settingsRes] = await Promise.all([
-          fetch('/api/services'),
-          fetch('/api/settings')
+          fetch('/api/services', { signal: controller.signal }),
+          fetch('/api/settings', { signal: controller.signal })
         ]);
+
+        clearTimeout(timeoutId);
 
         if (!servicesRes.ok || !settingsRes.ok) {
           throw new Error('Falha ao carregar dados do servidor');
@@ -50,9 +55,11 @@ export default function Home() {
         const servicesData = await servicesRes.json();
         const settingsData = await settingsRes.json();
 
-        setServices(servicesData);
+        if (Array.isArray(servicesData)) {
+          setServices(servicesData);
+        }
         
-        if (!settingsData.error) {
+        if (settingsData && !settingsData.error) {
           setSettings(prev => ({
             profile_name: settingsData.profile_name || prev.profile_name,
             cover_photo: settingsData.cover_photo || prev.cover_photo,
@@ -67,9 +74,13 @@ export default function Home() {
             tiktok_url: settingsData.tiktok_url || prev.tiktok_url
           }));
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error fetching data:', err);
-        setError('Não foi possível carregar as informações. Verifique sua conexão.');
+        if (err.name === 'AbortError') {
+          setError('O servidor demorou muito para responder. Tente novamente.');
+        } else {
+          setError('Não foi possível carregar as informações. Verifique sua conexão.');
+        }
       } finally {
         setLoading(false);
       }
@@ -105,6 +116,10 @@ export default function Home() {
               src={settings.cover_photo} 
               alt="Capa" 
               className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = 'https://images.unsplash.com/photo-1587775537446-271510255146?w=1600&q=80';
+              }}
             />
           </div>
           

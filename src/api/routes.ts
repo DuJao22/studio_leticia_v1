@@ -1,13 +1,12 @@
 import { Router } from 'express';
-import { getDb } from '../db/database';
+import { query } from '../db/database';
 
 const router = Router();
 
 // Get settings
 router.get('/settings', async (req, res) => {
   try {
-    const db = getDb();
-    const settings = await db.sql('SELECT * FROM settings');
+    const settings = await query('SELECT * FROM settings');
     const settingsMap = settings.reduce((acc: any, curr: any) => {
       acc[curr.setting_key] = curr.value;
       return acc;
@@ -21,15 +20,13 @@ router.get('/settings', async (req, res) => {
 // Admin: Update settings
 router.put('/admin/settings', async (req, res) => {
   try {
-    const db = getDb();
-    
     // Helper function to insert or update setting
     const upsertSetting = async (key: string, value: string) => {
-      const existing = await db.sql`SELECT * FROM settings WHERE setting_key = ${key}`;
+      const existing = await query`SELECT * FROM settings WHERE setting_key = ${key}`;
       if (existing && existing.length > 0) {
-        await db.sql`UPDATE settings SET value = ${value} WHERE setting_key = ${key}`;
+        await query`UPDATE settings SET value = ${value} WHERE setting_key = ${key}`;
       } else {
-        await db.sql`INSERT INTO settings (setting_key, value) VALUES (${key}, ${value})`;
+        await query`INSERT INTO settings (setting_key, value) VALUES (${key}, ${value})`;
       }
     };
 
@@ -49,8 +46,7 @@ router.put('/admin/settings', async (req, res) => {
 // Get all services
 router.get('/services', async (req, res) => {
   try {
-    const db = getDb();
-    const services = await db.sql('SELECT * FROM services');
+    const services = await query('SELECT * FROM services');
     res.json(services);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar serviços' });
@@ -65,12 +61,10 @@ router.get('/availability', async (req, res) => {
   }
 
   try {
-    const db = getDb();
-    
     // Get service duration
     let duration = 40; // default to 40 minutes
     if (service_id) {
-      const service = await db.sql('SELECT duration FROM services WHERE id = ?', service_id) as { duration: number }[];
+      const service = await query('SELECT duration FROM services WHERE id = ?', service_id) as { duration: number }[];
       if (service && service.length > 0) {
         duration = service[0].duration;
       }
@@ -80,7 +74,7 @@ router.get('/availability', async (req, res) => {
     const dayOfWeek = new Date(date as string).getUTCDay();
     
     // Get working hours for this day
-    const workingHours = await db.sql(
+    const workingHours = await query(
       "SELECT * FROM working_hours WHERE day_of_week = ? AND is_active = 1",
       dayOfWeek
     ) as { start_time: string, end_time: string, start_time_2?: string, end_time_2?: string }[];
@@ -91,7 +85,7 @@ router.get('/availability', async (req, res) => {
 
     const { start_time, end_time, start_time_2, end_time_2 } = workingHours[0];
 
-    const appointments = await db.sql(
+    const appointments = await query(
       "SELECT time FROM appointments WHERE date = ? AND status != 'Cancelado'",
       date
     ) as { time: string }[];
@@ -144,10 +138,8 @@ router.post('/appointments', async (req, res) => {
   }
 
   try {
-    const db = getDb();
-    
     // Check if time is still available
-    const existing = await db.sql(
+    const existing = await query(
       "SELECT id FROM appointments WHERE date = ? AND time = ? AND status != 'Cancelado'",
       date, time
     );
@@ -156,7 +148,7 @@ router.post('/appointments', async (req, res) => {
       return res.status(400).json({ error: 'Time slot is no longer available' });
     }
 
-    const result = await db.sql(
+    const result = await query(
       'INSERT INTO appointments (user_id, client_name, client_phone, service_id, date, time) VALUES (?, ?, ?, ?, ?, ?)',
       user_id || null, client_name, client_phone, service_id, date, time
     );
@@ -170,8 +162,7 @@ router.post('/appointments', async (req, res) => {
 // Admin: Get all appointments
 router.get('/admin/appointments', async (req, res) => {
   try {
-    const db = getDb();
-    const appointments = await db.sql(`
+    const appointments = await query(`
       SELECT a.*, s.name as service_name 
       FROM appointments a
       JOIN services s ON a.service_id = s.id
@@ -193,8 +184,7 @@ router.patch('/admin/appointments/:id/status', async (req, res) => {
   }
 
   try {
-    const db = getDb();
-    await db.sql('UPDATE appointments SET status = ? WHERE id = ?', status, id);
+    await query('UPDATE appointments SET status = ? WHERE id = ?', status, id);
     res.json({ message: 'Status updated successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao atualizar status' });
@@ -217,8 +207,7 @@ router.post('/admin/login', (req, res) => {
 router.post('/users/check', async (req, res) => {
   const { phone } = req.body;
   try {
-    const db = getDb();
-    const results = await db.sql('SELECT id, name FROM users WHERE phone = ?', phone);
+    const results = await query('SELECT id, name FROM users WHERE phone = ?', phone);
     if (results && results.length > 0) {
       res.json({ exists: true, name: results[0].name });
     } else {
@@ -233,10 +222,9 @@ router.post('/users/check', async (req, res) => {
 router.post('/users/register', async (req, res) => {
   const { name, phone, password } = req.body;
   try {
-    const db = getDb();
-    await db.sql('INSERT INTO users (name, phone, password) VALUES (?, ?, ?)', name, phone, password);
+    await query('INSERT INTO users (name, phone, password) VALUES (?, ?, ?)', name, phone, password);
     // Get the last inserted id
-    const results = await db.sql('SELECT last_insert_rowid() as id');
+    const results = await query('SELECT last_insert_rowid() as id');
     res.json({ success: true, user_id: results[0].id, name, phone });
   } catch (err) {
     res.status(400).json({ error: 'Erro ao registrar usuário. Telefone já existe?' });
@@ -247,8 +235,7 @@ router.post('/users/register', async (req, res) => {
 router.post('/users/login', async (req, res) => {
   const { phone, password } = req.body;
   try {
-    const db = getDb();
-    const results = await db.sql('SELECT id, name, phone FROM users WHERE phone = ? AND password = ?', phone, password);
+    const results = await query('SELECT id, name, phone FROM users WHERE phone = ? AND password = ?', phone, password);
     if (results && results.length > 0) {
       res.json({ success: true, user: results[0] });
     } else {
@@ -263,8 +250,7 @@ router.post('/users/login', async (req, res) => {
 router.get('/users/:id/appointments', async (req, res) => {
   const { id } = req.params;
   try {
-    const db = getDb();
-    const appointments = await db.sql(`
+    const appointments = await query(`
       SELECT a.*, s.name as service_name, s.price, s.promotional_price, s.image
       FROM appointments a
       JOIN services s ON a.service_id = s.id
@@ -281,8 +267,7 @@ router.get('/users/:id/appointments', async (req, res) => {
 router.post('/admin/services', async (req, res) => {
   const { name, description, duration, price, promotional_price, image } = req.body;
   try {
-    const db = getDb();
-    await db.sql(
+    await query(
       'INSERT INTO services (name, description, duration, price, promotional_price, image) VALUES (?, ?, ?, ?, ?, ?)',
       name, description, duration, price, promotional_price || null, image
     );
@@ -297,8 +282,7 @@ router.put('/admin/services/:id', async (req, res) => {
   const { id } = req.params;
   const { name, description, duration, price, promotional_price, image } = req.body;
   try {
-    const db = getDb();
-    await db.sql(
+    await query(
       'UPDATE services SET name = ?, description = ?, duration = ?, price = ?, promotional_price = ?, image = ? WHERE id = ?',
       name, description, duration, price, promotional_price || null, image, id
     );
@@ -312,8 +296,7 @@ router.put('/admin/services/:id', async (req, res) => {
 router.delete('/admin/services/:id', async (req, res) => {
   const { id } = req.params;
   try {
-    const db = getDb();
-    await db.sql('DELETE FROM services WHERE id = ?', id);
+    await query('DELETE FROM services WHERE id = ?', id);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao excluir serviço' });
@@ -323,10 +306,8 @@ router.delete('/admin/services/:id', async (req, res) => {
 // Admin: Dashboard Stats
 router.get('/admin/stats', async (req, res) => {
   try {
-    const db = getDb();
-    
     // Total Revenue (Finalizado or Confirmado)
-    const revenueResult = await db.sql(`
+    const revenueResult = await query(`
       SELECT SUM(COALESCE(s.promotional_price, s.price)) as total
       FROM appointments a
       JOIN services s ON a.service_id = s.id
@@ -334,13 +315,13 @@ router.get('/admin/stats', async (req, res) => {
     `);
     
     // Total Appointments
-    const appointmentsCount = await db.sql(`SELECT COUNT(*) as count FROM appointments WHERE status != 'Cancelado'`);
+    const appointmentsCount = await query(`SELECT COUNT(*) as count FROM appointments WHERE status != 'Cancelado'`);
     
     // Total Clients
-    const clientsCount = await db.sql(`SELECT COUNT(*) as count FROM users`);
+    const clientsCount = await query(`SELECT COUNT(*) as count FROM users`);
 
     // Revenue by Day (Last 7 days)
-    const revenueByDay = await db.sql(`
+    const revenueByDay = await query(`
       SELECT a.date, SUM(COALESCE(s.promotional_price, s.price)) as revenue
       FROM appointments a
       JOIN services s ON a.service_id = s.id
@@ -351,7 +332,7 @@ router.get('/admin/stats', async (req, res) => {
     `);
 
     // Appointments by Service
-    const appointmentsByService = await db.sql(`
+    const appointmentsByService = await query(`
       SELECT s.name, COUNT(a.id) as count
       FROM appointments a
       JOIN services s ON a.service_id = s.id
@@ -375,8 +356,7 @@ router.get('/admin/stats', async (req, res) => {
 // Admin: CRM Clients List
 router.get('/admin/crm/clients', async (req, res) => {
   try {
-    const db = getDb();
-    const clients = await db.sql(`
+    const clients = await query(`
       SELECT 
         u.id, 
         u.name, 
@@ -401,8 +381,7 @@ router.get('/admin/crm/clients', async (req, res) => {
 // Admin: Get working hours
 router.get('/admin/working-hours', async (req, res) => {
   try {
-    const db = getDb();
-    const hours = await db.sql('SELECT * FROM working_hours ORDER BY day_of_week ASC');
+    const hours = await query('SELECT * FROM working_hours ORDER BY day_of_week ASC');
     res.json(hours);
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar horários de trabalho' });
@@ -413,9 +392,8 @@ router.get('/admin/working-hours', async (req, res) => {
 router.put('/admin/working-hours', async (req, res) => {
   const hours = req.body; // Array of working hours
   try {
-    const db = getDb();
     for (const h of hours) {
-      await db.sql(
+      await query(
         'UPDATE working_hours SET start_time = ?, end_time = ?, start_time_2 = ?, end_time_2 = ?, is_active = ? WHERE day_of_week = ?',
         h.start_time, h.end_time, h.start_time_2 || null, h.end_time_2 || null, h.is_active ? 1 : 0, h.day_of_week
       );

@@ -1,12 +1,11 @@
 import cron from 'node-cron';
-import { getDb } from '../db/database';
+import { query } from '../db/database';
 import { addDays, format, parseISO, isAfter, isBefore, addHours } from 'date-fns';
 
 export function initCronJobs() {
   // Run every 15 minutes
   cron.schedule('*/15 * * * *', async () => {
     console.log('Running scheduled notifications check...');
-    const db = getDb();
     const now = new Date();
     const tomorrow = addDays(now, 1);
     const inOneHour = addHours(now, 1);
@@ -18,7 +17,7 @@ export function initCronJobs() {
       // 1. Check for appointments tomorrow (1 day before)
       
       // 1 Day Before Notifications
-      const tomorrowAppointments = await db.sql(`
+      const tomorrowAppointments = await query(`
         SELECT a.*, s.name as service_name, u.name as user_name, u.phone as user_phone
         FROM appointments a
         JOIN services s ON a.service_id = s.id
@@ -28,11 +27,11 @@ export function initCronJobs() {
 
       for (const app of tomorrowAppointments) {
         console.log(`[NOTIFICAÇÃO SMS/WHATSAPP] Lembrete: Olá ${app.client_name}, você tem um agendamento amanhã (${app.date}) às ${app.time} para ${app.service_name}.`);
-        await db.sql('UPDATE appointments SET notified_1day = 1 WHERE id = ?', app.id);
+        await query('UPDATE appointments SET notified_1day = 1 WHERE id = ?', app.id);
       }
 
       // 1 Hour Before Notifications
-      const todayAppointments = await db.sql(`
+      const todayAppointments = await query(`
         SELECT a.*, s.name as service_name
         FROM appointments a
         JOIN services s ON a.service_id = s.id
@@ -44,7 +43,7 @@ export function initCronJobs() {
         // If appointment is within the next 60 minutes
         if (isAfter(appDateTime, now) && isBefore(appDateTime, addHours(now, 1.25))) {
           console.log(`[NOTIFICAÇÃO SMS/WHATSAPP] Lembrete: Olá ${app.client_name}, seu agendamento para ${app.service_name} é em menos de 1 hora (às ${app.time}).`);
-          await db.sql('UPDATE appointments SET notified_1hour = 1 WHERE id = ?', app.id);
+          await query('UPDATE appointments SET notified_1hour = 1 WHERE id = ?', app.id);
         }
       }
 

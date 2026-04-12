@@ -25,6 +25,77 @@ export function getDb() {
   return db;
 }
 
+const QUERY_TIMEOUT = 10000; // 10 seconds
+
+/**
+ * Executes a SQL query with automatic reconnection and retry logic.
+ */
+export async function query(sql: string | TemplateStringsArray, ...params: any[]): Promise<any> {
+  let database = getDb();
+  
+  const executeQuery = async (dbInstance: Database) => {
+    // @ts-ignore
+    return await dbInstance.sql(sql, ...params);
+  };
+
+  const withTimeout = async (dbInstance: Database) => {
+    return await Promise.race([
+      executeQuery(dbInstance),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error(`Query timed out after ${QUERY_TIMEOUT}ms`)), QUERY_TIMEOUT)
+      )
+    ]);
+  };
+
+  try {
+    return await withTimeout(database);
+  } catch (error: any) {
+    console.error('Database query failed or timed out, attempting to reconnect...', error.message);
+    
+    // Reset connection
+    try {
+      // Attempt to close the old connection if possible
+      // @ts-ignore
+      if (db && typeof db.close === 'function') {
+        // @ts-ignore
+        db.close();
+      }
+    } catch (closeError) {
+      console.warn('Error closing stale database connection:', closeError);
+    }
+    
+    db = null;
+    database = getDb();
+    
+    try {
+      console.log('Retrying query with new connection...');
+      return await withTimeout(database);
+    } catch (retryError: any) {
+      console.error('Database query failed again after reconnection:', retryError.message);
+      throw retryError;
+    }
+  }
+}
+
+/**
+ * Pings the database to keep the connection alive.
+ * Useful for preventing inactivity timeouts.
+ */
+export async function pingDb() {
+  try {
+    const database = getDb();
+    await database.sql`SELECT 1`;
+    console.log('Database ping successful.');
+    return true;
+  } catch (error) {
+    console.error('Database ping failed:', error);
+    // If ping fails, we might want to reset the connection instance
+    // so the next getDb() call creates a new one.
+    db = null; 
+    return false;
+  }
+}
+
 export async function initDb(retries = 3): Promise<void> {
   const database = getDb();
   

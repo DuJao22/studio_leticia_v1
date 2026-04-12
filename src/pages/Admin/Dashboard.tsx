@@ -59,10 +59,11 @@ export default function AdminDashboard() {
     name: '', description: '', duration: 60, price: 0, promotional_price: '', image: ''
   });
 
-  const fetchData = (isInitial = false) => {
-    fetch('/api/admin/appointments')
-      .then(res => res.json())
-      .then(data => {
+  const fetchData = async (isInitial = false) => {
+    try {
+      const appointmentsRes = await fetch('/api/admin/appointments');
+      if (appointmentsRes.ok) {
+        const data = await appointmentsRes.json();
         if (Array.isArray(data)) {
           if (data.length > 0) {
             const newest = data[0];
@@ -73,50 +74,37 @@ export default function AdminDashboard() {
             setLastAppointmentId(newest.id);
           }
           setAppointments(data);
-        } else {
-          console.warn('Failed to fetch appointments:', data);
-          setAppointments([]);
         }
-      })
-      .catch(err => {
-        console.warn('Fetch error:', err.message);
-        setAppointments([]);
-      });
+      }
 
-    fetch('/api/services')
-      .then(res => res.json())
-      .then(data => {
+      const servicesRes = await fetch('/api/services');
+      if (servicesRes.ok) {
+        const data = await servicesRes.json();
         if (Array.isArray(data)) setServices(data);
-        else setServices([]);
-      })
-      .catch(() => setServices([]));
+      }
 
-    fetch('/api/admin/stats')
-      .then(res => res.json())
-      .then(data => {
+      const statsRes = await fetch('/api/admin/stats');
+      if (statsRes.ok) {
+        const data = await statsRes.json();
         if (!data.error) setStats(data);
-      })
-      .catch(() => {});
+      }
 
-    fetch('/api/admin/crm/clients')
-      .then(res => res.json())
-      .then(data => {
+      const crmRes = await fetch('/api/admin/crm/clients');
+      if (crmRes.ok) {
+        const data = await crmRes.json();
         if (Array.isArray(data)) setCrmClients(data);
-        else setCrmClients([]);
-      })
-      .catch(() => setCrmClients([]));
+      }
 
-    if (isInitial) {
-      fetch('/api/admin/working-hours')
-        .then(res => res.json())
-        .then(data => {
+      if (isInitial) {
+        const hoursRes = await fetch('/api/admin/working-hours');
+        if (hoursRes.ok) {
+          const data = await hoursRes.json();
           if (Array.isArray(data)) setWorkingHours(data);
-        })
-        .catch(() => {});
+        }
 
-      fetch('/api/settings')
-        .then(res => res.json())
-        .then(data => {
+        const settingsRes = await fetch('/api/settings');
+        if (settingsRes.ok) {
+          const data = await settingsRes.json();
           if (!data.error) {
             setSettings({
               profile_name: data.profile_name || 'Letícia Studio',
@@ -132,8 +120,10 @@ export default function AdminDashboard() {
               tiktok_url: data.tiktok_url || ''
             });
           }
-        })
-        .catch(() => {});
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching dashboard data:', err.message);
     }
   };
 
